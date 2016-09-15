@@ -5,7 +5,12 @@
   {mod, { maestro_web_app, []}},
   {applications,
    [kernel,
-    stdlib
+    stdlib,
+    cowboy,
+    jsx,
+    lager,
+    erlydtl,
+    uuid
    ]},
   {env,[]},
   {modules, []},
