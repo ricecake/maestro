@@ -1,0 +1,14 @@
+html {
+	font-family: monospace;
+}
+
+.link-display {
+	border: none;
+	background: none;
+	color: #08c;
+	padding: 0;
+}
+.link-display:hover, .link-display:focus, .link-display:active {
+	text-decoration: underline;
+	cursor: pointer;
+}
