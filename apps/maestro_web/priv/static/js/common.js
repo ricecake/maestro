@@ -6,6 +6,14 @@ requirejs.config({
 		KnotConn: 'lib/ext/connection',
 		text: 'lib/ext/text',
 		tpl: 'lib/ext/tpl',
+		midi: 'lib/ext/MIDI.min',
 		template: '../template'
+	},
+	shim: {
+		midi:{
+			deps: [
+				'lib/ext/Base64binary'
+			]
+		}
 	}
 });
