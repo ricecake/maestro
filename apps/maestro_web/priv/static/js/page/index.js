@@ -28,8 +28,8 @@ $(document).ready(function(){
 					connection.addEventHandlers({
 						'note': function(key, content, raw){
 							console.log('NOTE');
-							MIDI.noteOn(content.channel, content.note, velocity, delay);
-							MIDI.noteOff(content.channel, content.note, delay + 0.75);
+							MIDI.noteOn(0, content.note, velocity, delay);
+							MIDI.noteOff(0, content.note, delay + 0.75);
 						}
 					});
 				}
