@@ -23,7 +23,7 @@ init(Req, Opts) ->
 	{cowboy_websocket, Req2, State}.
 
 websocket_init(State) ->
-	erlang:send_after(500, self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 10+random:uniform(80), channel => random:uniform(1) } })}),
+	erlang:send_after(250, self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 20+random:uniform(60), channel => random:uniform(3)-1 } })}),
 	{ok, State}.
 
 websocket_handle({text, JSON}, State) ->
@@ -38,7 +38,7 @@ websocket_handle(_Frame, State) ->
 	{ok, State}.
 
 websocket_info({send, Message}, State) ->
-	erlang:send_after(500, self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 10+random:uniform(80), channel => random:uniform(1) } })}),
+	erlang:send_after(250, self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 20+random:uniform(60), channel => random:uniform(3)-1 } })}),
 	{reply, {text, Message}, State};
 websocket_info(Message, State) ->
 	{reply, Message, State}.

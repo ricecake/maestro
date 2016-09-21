@@ -11,9 +11,10 @@ $(document).ready(function(){
 		url: '/ws/',
 		onOpen: function() {
 			console.log("Here!");
+			var instruments = [ 'acoustic_grand_piano', 'electric_bass_finger', 'synth_drum' ];
 			MIDI.loadPlugin({
 				soundfontUrl: "/static/soundfont/",
-				instruments: [ 'acoustic_grand_piano', 'synth_drum' ],
+				instruments: instruments,
 				onprogress: function(state, progress) {
 					console.log(state, progress);
 				},
@@ -23,13 +24,17 @@ $(document).ready(function(){
 					var velocity = 127; // how hard the note hits
 					// play the note
 					MIDI.setVolume(0, 127);
-					MIDI.noteOn(0, note, velocity, delay);
-					MIDI.noteOff(0, note, delay + 0.75);
+					//MIDI.noteOn(0, note, velocity, delay);
+					//MIDI.noteOff(0, note, delay + 0.75);
+					instruments.forEach(function(item, offset) {
+						MIDI.programChange(offset, MIDI.GM.byName[item].number);
+					});
 					connection.addEventHandlers({
 						'note': function(key, content, raw){
-							console.log('NOTE');
-							MIDI.noteOn(0, content.note, velocity, delay);
-							MIDI.noteOff(0, content.note, delay + 0.75);
+							console.log('NOTE', MIDI.GM);
+							console.log(MIDI.getInstrument(0));
+							MIDI.noteOn(content.channel, content.note, velocity, delay);
+							MIDI.noteOff(content.channel, content.note, delay + 0.75);
 						}
 					});
 				}
