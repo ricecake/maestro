@@ -10,7 +10,6 @@ $(document).ready(function(){
         var connection = new KnotConn({
 		url: '/ws/',
 		onOpen: function() {
-			console.log("Here!");
 			var instruments = [ 'acoustic_grand_piano', 'electric_bass_finger', 'synth_drum' ];
 			MIDI.loadPlugin({
 				soundfontUrl: "/static/soundfont/",
@@ -26,17 +25,28 @@ $(document).ready(function(){
 					MIDI.setVolume(0, 127);
 					//MIDI.noteOn(0, note, velocity, delay);
 					//MIDI.noteOff(0, note, delay + 0.75);
+					for (var i = 1; i < 8; i++) {
 					instruments.forEach(function(item, offset) {
-						MIDI.programChange(offset, MIDI.GM.byName[item].number);
+						MIDI.programChange(offset*i, MIDI.GM.byName[item].number);
 					});
+					}
+					MIDI.programChange(2, MIDI.GM.byName['acoustic_grand_piano'].number);
+					MIDI.programChange(9, MIDI.GM.byName['synth_drum'].number);
 					connection.addEventHandlers({
-						'note': function(key, content, raw){
-							console.log('NOTE', MIDI.GM);
-							console.log(MIDI.getInstrument(0));
-							MIDI.noteOn(content.channel, content.note, velocity, delay);
-							MIDI.noteOff(content.channel, content.note, delay + 0.75);
-						}
+						'#': function(key, content, raw) {
+							console.log(raw);
+						},
+						'note.on': function(key, content, raw){
+							MIDI.noteOn(content.channel, content.note, content.velocity, delay);
+						},
+						'note.off': function(key, content, raw){
+							MIDI.noteOff(content.channel, content.note, delay);
+						},
+						'control.program': function(key, content, raw){
+							MIDI.programChange(content.channel, content.program);
+						},
 					});
+					MIDI.Player.loadFile('/static/midi/ice_ice.mid', function(){ console.log('Loaded') });
 				}
 			});
 		}

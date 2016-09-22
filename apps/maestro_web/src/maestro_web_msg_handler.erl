@@ -23,8 +23,11 @@ init(Req, Opts) ->
 	{cowboy_websocket, Req2, State}.
 
 websocket_init(State) ->
-	erlang:send_after(250, self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 20+random:uniform(60), channel => random:uniform(3)-1 } })}),
-	{ok, State}.
+	File = filename:join(code:priv_dir(maestro_web), "static/midi/ice_ice.mid"),
+	{seq, _, {track, [First |Track]}, _} = midifile:read(File),
+	%erlang:send_after(random:uniform(650), self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 20+random:uniform(60), channel => random:uniform(3)-1 } })}),
+	midiEvent(self(), First),
+	{ok, State#{ track => Track }}.
 
 websocket_handle({text, JSON}, State) ->
 	case jsx:decode(JSON, [return_maps]) of
@@ -37,15 +40,30 @@ websocket_handle({text, JSON}, State) ->
 websocket_handle(_Frame, State) ->
 	{ok, State}.
 
+websocket_info({midi, Type, Data}, #{ track := [Next |Rest] } = State) ->
+	io:format("~w~n", [{Type, Data}]),
+	midiEvent(self(), Next),
+	handleMIDI(Type, Data, State#{ track := Rest });
 websocket_info({send, Message}, State) ->
-	erlang:send_after(250, self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 20+random:uniform(60), channel => random:uniform(3)-1 } })}),
+	%erlang:send_after(random:uniform(650), self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 20+random:uniform(60), channel => random:uniform(3)-1 } })}),
 	{reply, {text, Message}, State};
-websocket_info(Message, State) ->
-	{reply, Message, State}.
+websocket_info(_Message, State) ->
+	{ok, State}.
 
 terminate(_, Req, State) ->
 	{ok, Req, State}.
 
+
+handleMIDI(on, [Channel, Note, Velocity], State) ->
+	{reply, {text, formatMessage(<<"note.on">>, #{ note => Note, channel => Channel, velocity => Velocity })}, State};
+handleMIDI(off, [Channel, Note, Velocity], State) ->
+	{reply, {text, formatMessage(<<"note.off">>, #{ note => Note, channel => Channel, velocity => Velocity })}, State};
+handleMIDI(program, [Channel, Program], State) ->
+	{reply, {text, formatMessage(<<"control.program">>, #{ channel => Channel, program => Program })}, State};
+handleMIDI(_, _, State) ->
+	{ok, State}.
+
+formatMessage(Type, Message) -> jsx:encode(#{ type => Type, content => Message }).
 
 %% ------------------------------------------------------------------
 %% API Function Definitions
@@ -66,6 +84,9 @@ send(Handler, Type, Message) ->
 	Handler ! {send, jsx:encode(#{ type => Type, content => Message })},
 	ok.
 
+midiEvent(Handler, {Type, Delay, Data}) ->
+	erlang:send_after(Delay*5, Handler, {midi, Type, Data}),
+	ok.
 
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
