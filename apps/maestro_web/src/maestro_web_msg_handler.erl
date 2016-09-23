@@ -20,14 +20,17 @@
 
 init(Req, Opts) ->
 	{ok, Req2, State} = initSession(Req, Opts),
-	{cowboy_websocket, Req2, State}.
+	{cowboy_websocket, Req2, State#{ interval => 500000 }}.
 
 websocket_init(State) ->
 	File = filename:join(code:priv_dir(maestro_web), "static/midi/ice_ice.mid"),
-	{seq, _, {track, [First |Track]}, _} = midifile:read(File),
+	%File = filename:join(code:priv_dir(maestro_web), "static/midi/bumble_bee.mid"),
+	Data = midifile:read(File),
+	{seq, _, {track, [First |Track]}, OtherTracks} = Data,
+	%io:format("~p~n", [Data]),
 	%erlang:send_after(random:uniform(650), self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 20+random:uniform(60), channel => random:uniform(3)-1 } })}),
-	midiEvent(self(), First),
-	{ok, State#{ track => Track }}.
+	midiEvent(State, First),
+	{ok, State#{ track => lists:flatten([Track, [ TrackData || {track, TrackData} <- OtherTracks ]]) }}.
 
 websocket_handle({text, JSON}, State) ->
 	case jsx:decode(JSON, [return_maps]) of
@@ -42,7 +45,7 @@ websocket_handle(_Frame, State) ->
 
 websocket_info({midi, Type, Data}, #{ track := [Next |Rest] } = State) ->
 	io:format("~w~n", [{Type, Data}]),
-	midiEvent(self(), Next),
+	midiEvent(State, Next),
 	handleMIDI(Type, Data, State#{ track := Rest });
 websocket_info({send, Message}, State) ->
 	%erlang:send_after(random:uniform(650), self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 20+random:uniform(60), channel => random:uniform(3)-1 } })}),
@@ -54,6 +57,8 @@ terminate(_, Req, State) ->
 	{ok, Req, State}.
 
 
+handleMIDI(tempo, [TICKS], State) ->
+	{ok, State#{ interval := TICKS }};
 handleMIDI(on, [Channel, Note, Velocity], State) ->
 	{reply, {text, formatMessage(<<"note.on">>, #{ note => Note, channel => Channel, velocity => Velocity })}, State};
 handleMIDI(off, [Channel, Note, Velocity], State) ->
@@ -84,8 +89,8 @@ send(Handler, Type, Message) ->
 	Handler ! {send, jsx:encode(#{ type => Type, content => Message })},
 	ok.
 
-midiEvent(Handler, {Type, Delay, Data}) ->
-	erlang:send_after(Delay*5, Handler, {midi, Type, Data}),
+midiEvent(#{ interval := Interval }, {Type, Delay, Data}) ->
+	erlang:send_after(round(Interval * (Delay / (192*1000))), self(), {midi, Type, Data}),
 	ok.
 
 %% ------------------------------------------------------------------

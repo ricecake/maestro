@@ -1,7 +1,8 @@
 ;define([
 	'jquery',
 	'KnotConn',
-	'midi'
+	'midi',
+	'timbre'
 ], function($, KnotConn){
 'use strict';
 var needsSetup = true;
@@ -10,7 +11,9 @@ $(document).ready(function(){
         var connection = new KnotConn({
 		url: '/ws/',
 		onOpen: function() {
-			var instruments = [ 'acoustic_grand_piano', 'electric_bass_finger', 'synth_drum' ];
+			//var instruments = [ 'acoustic_grand_piano', 'electric_bass_finger', 'synth_drum' ];
+			var env = T("perc", {a:50, r:2500});
+			var pluck = T("PluckGen", {env:env, mul:0.5}).play();
 			MIDI.loadPlugin({
 				soundfontUrl: "/static/soundfont/",
 				instruments: instruments,

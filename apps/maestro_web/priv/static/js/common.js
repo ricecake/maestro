@@ -7,7 +7,8 @@ requirejs.config({
 		text: 'lib/ext/text',
 		tpl: 'lib/ext/tpl',
 		midi: 'lib/ext/MIDI.min',
-		template: '../template'
+		template: '../template',
+		timbre: 'lib/ext/timbre'
 	},
 	shim: {
 		midi:{
