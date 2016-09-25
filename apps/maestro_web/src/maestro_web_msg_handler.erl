@@ -23,8 +23,7 @@ init(Req, Opts) ->
 	{cowboy_websocket, Req2, State#{ interval => 500000 }}.
 
 websocket_init(State) ->
-	File = filename:join(code:priv_dir(maestro_web), "static/midi/ice_ice.mid"),
-	%File = filename:join(code:priv_dir(maestro_web), "static/midi/bumble_bee.mid"),
+	File = filename:join(code:priv_dir(maestro_web), "static/midi/bumble_bee.mid"),
 	Data = midifile:read(File),
 	{seq, _, {track, [First |Track]}, OtherTracks} = Data,
 	%io:format("~p~n", [Data]),
@@ -47,7 +46,6 @@ websocket_info({midi, Type, Data}, #{ track := [Next |Rest] } = State) ->
 	midiEvent(State, Next),
 	handleMIDI(Type, Data, State#{ track := Rest });
 websocket_info({send, Message}, State) ->
-	%erlang:send_after(random:uniform(650), self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 20+random:uniform(60), channel => random:uniform(3)-1 } })}),
 	{reply, {text, Message}, State};
 websocket_info(_Message, State) ->
 	{ok, State}.
