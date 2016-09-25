@@ -28,7 +28,6 @@ websocket_init(State) ->
 	Data = midifile:read(File),
 	{seq, _, {track, [First |Track]}, OtherTracks} = Data,
 	%io:format("~p~n", [Data]),
-	%erlang:send_after(random:uniform(650), self(), {send, jsx:encode(#{ type => <<"note">>, content => #{ note => 20+random:uniform(60), channel => random:uniform(3)-1 } })}),
 	midiEvent(State, First),
 	{ok, State#{ track => lists:flatten([Track, [ TrackData || {track, TrackData} <- OtherTracks ]]) }}.
 
