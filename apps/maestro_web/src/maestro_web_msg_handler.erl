@@ -20,15 +20,17 @@
 
 init(Req, Opts) ->
 	{ok, Req2, State} = initSession(Req, Opts),
-	{cowboy_websocket, Req2, State#{ interval => 500000 }}.
+	{cowboy_websocket, Req2, State#{ interval => 500000, ts_denom => 4, ts_num => 4, tpqs => 256 }}.
 
 websocket_init(State) ->
 	File = filename:join(code:priv_dir(maestro_web), "static/midi/bumble_bee.mid"),
-	Data = midifile:read(File),
-	{seq, _, {track, [First |Track]}, OtherTracks} = Data,
-	%io:format("~p~n", [Data]),
+	{seq, {header, _Version, Devision}, {track, [First |Track]}, OtherTracks} = midifile:read(File),
+	TicksPerQuarterNote = case <<Devision:16>> of
+		<<0:1, TPQN:15>> -> TPQN;
+		<<1:1, FPS:7, TPF:8>> ->  FPS*TPF
+	end,
 	midiEvent(State, First),
-	{ok, State#{ track => lists:flatten([Track, [ TrackData || {track, TrackData} <- OtherTracks ]]) }}.
+	{ok, State#{ track => lists:flatten([Track, [ TrackData || {track, TrackData} <- OtherTracks ]]), tpqs := TicksPerQuarterNote }}.
 
 websocket_handle({text, JSON}, State) ->
 	case jsx:decode(JSON, [return_maps]) of
@@ -42,7 +44,6 @@ websocket_handle(_Frame, State) ->
 	{ok, State}.
 
 websocket_info({midi, Type, Data}, #{ track := [Next |Rest] } = State) ->
-	io:format("~w~n", [{Type, Data}]),
 	midiEvent(State, Next),
 	handleMIDI(Type, Data, State#{ track := Rest });
 websocket_info({send, Message}, State) ->
@@ -54,6 +55,8 @@ terminate(_, Req, State) ->
 	{ok, Req, State}.
 
 
+handleMIDI(time_signature, [<<Num, Denom, _, _>>], State) ->
+	{ok, State#{ ts_denom := math:pow(2, Denom), ts_num => Num }};
 handleMIDI(tempo, [TICKS], State) ->
 	{ok, State#{ interval := TICKS }};
 handleMIDI(on, [Channel, Note, Velocity], State) ->
@@ -61,7 +64,7 @@ handleMIDI(on, [Channel, Note, Velocity], State) ->
 handleMIDI(off, [Channel, Note, Velocity], State) ->
 	{reply, {text, formatMessage(<<"note.off">>, #{ note => Note, channel => Channel, velocity => Velocity })}, State};
 handleMIDI(program, [Channel, Program], State) ->
-	{reply, {text, formatMessage(<<"control.program">>, #{ channel => Channel, program => Program+1 })}, State};
+	{reply, {text, formatMessage(<<"control.program">>, #{ channel => Channel, program => Program })}, State};
 handleMIDI(_, _, State) ->
 	{ok, State}.
 
@@ -86,8 +89,12 @@ send(Handler, Type, Message) ->
 	Handler ! {send, jsx:encode(#{ type => Type, content => Message })},
 	ok.
 
-midiEvent(#{ interval := Interval }, {Type, Delay, Data}) ->
-	erlang:send_after(round(Interval * (Delay / (192*1000))), self(), {midi, Type, Data}),
+midiEvent(#{ interval := Interval, tpqs := TPQN }, {Type, Delay, Data}) ->
+	SecondsPerQuarterNote = Interval / 1000,
+	SecondsPerTick = SecondsPerQuarterNote / TPQN,
+	EventDelay = round(Delay * SecondsPerTick),
+
+	erlang:send_after(EventDelay, self(), {midi, Type, Data}),
 	ok.
 
 %% ------------------------------------------------------------------
