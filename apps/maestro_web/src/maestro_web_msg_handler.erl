@@ -61,7 +61,7 @@ handleMIDI(on, [Channel, Note, Velocity], State) ->
 handleMIDI(off, [Channel, Note, Velocity], State) ->
 	{reply, {text, formatMessage(<<"note.off">>, #{ note => Note, channel => Channel, velocity => Velocity })}, State};
 handleMIDI(program, [Channel, Program], State) ->
-	{reply, {text, formatMessage(<<"control.program">>, #{ channel => Channel, program => Program+1 })}, State};
+	{reply, {text, formatMessage(<<"control.program">>, #{ channel => Channel, program => Program })}, State};
 handleMIDI(_, _, State) ->
 	{ok, State}.
 
