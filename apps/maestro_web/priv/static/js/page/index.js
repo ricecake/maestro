@@ -193,6 +193,7 @@ $(document).ready(function(){
 							MIDI.programChange(content.channel, content.program+1);
 						},
 					});
+					connection.send('client.ready', {});
 				}
 			});
 			//MIDI.Player.loadFile('/static/midi/ice_ice.mid', function(){ console.log('Loaded') });

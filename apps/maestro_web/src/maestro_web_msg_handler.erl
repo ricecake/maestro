@@ -24,13 +24,13 @@ init(Req, Opts) ->
 
 websocket_init(State) ->
 	File = filename:join(code:priv_dir(maestro_web), "static/midi/bumble_bee.mid"),
-	{seq, {header, _Version, Devision}, {track, [First |Track]}, OtherTracks} = midifile:read(File),
+	{seq, {header, _Version, Devision}, {track, Tracks}, OtherTracks} = midifile:read(File),
 	TicksPerQuarterNote = case <<Devision:16>> of
 		<<0:1, TPQN:15>> -> TPQN;
 		<<1:1, FPS:7, TPF:8>> ->  FPS*TPF
 	end,
-	midiEvent(State, First),
-	{ok, State#{ track => lists:flatten([Track, [ TrackData || {track, TrackData} <- OtherTracks ]]), tpqs := TicksPerQuarterNote, interval => 500000, ts_denom => 4, ts_num => 4, tpqs => 256 }}.
+	AllTracks = lists:flatten([Tracks, [ TrackData || {track, TrackData} <- OtherTracks ]]),
+	{ok, State#{ track => AllTracks, tpqs => TicksPerQuarterNote, interval => 500000, ts_denom => 4, ts_num => 4, tpqs => 256 }}.
 
 websocket_handle({text, JSON}, State) ->
 	case jsx:decode(JSON, [return_maps]) of
@@ -104,6 +104,9 @@ midiEvent(#{ interval := Interval, tpqs := TPQN }, {Type, Delay, Data}) ->
 initSession(Req, State) ->
 	{ok, Req, State}.
 
+handle_client_task(<<"client.ready">>, _Content, #{ track := [ First | Rest] } = State) ->
+	midiEvent(State, First),
+	{ok, State#{ track := Rest }};
 handle_client_task(Type, Content, State) ->
 	lager:error("Untracked Message: ~p~n", [{Type, Content}]),
 	{ok, State}.
