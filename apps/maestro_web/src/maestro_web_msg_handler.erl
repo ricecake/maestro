@@ -20,7 +20,7 @@
 
 init(Req, Opts) ->
 	{ok, Req2, State} = initSession(Req, Opts),
-	{cowboy_websocket, Req2, State#{ interval => 500000, ts_denom => 4, ts_num => 4, tpqs => 256 }}.
+	{cowboy_websocket, Req2, State}.
 
 websocket_init(State) ->
 	File = filename:join(code:priv_dir(maestro_web), "static/midi/bumble_bee.mid"),
@@ -30,7 +30,7 @@ websocket_init(State) ->
 		<<1:1, FPS:7, TPF:8>> ->  FPS*TPF
 	end,
 	midiEvent(State, First),
-	{ok, State#{ track => lists:flatten([Track, [ TrackData || {track, TrackData} <- OtherTracks ]]), tpqs := TicksPerQuarterNote }}.
+	{ok, State#{ track => lists:flatten([Track, [ TrackData || {track, TrackData} <- OtherTracks ]]), tpqs := TicksPerQuarterNote, interval => 500000, ts_denom => 4, ts_num => 4, tpqs => 256 }}.
 
 websocket_handle({text, JSON}, State) ->
 	case jsx:decode(JSON, [return_maps]) of
