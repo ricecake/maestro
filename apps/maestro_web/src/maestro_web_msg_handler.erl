@@ -54,22 +54,6 @@ websocket_info(_Message, State) ->
 terminate(_, Req, State) ->
 	{ok, Req, State}.
 
-
-handleMIDI(time_signature, [<<Num, Denom, _, _>>], State) ->
-	{ok, State#{ ts_denom := math:pow(2, Denom), ts_num => Num }};
-handleMIDI(tempo, [TICKS], State) ->
-	{ok, State#{ interval := TICKS }};
-handleMIDI(on, [Channel, Note, Velocity], State) ->
-	{reply, {text, formatMessage(<<"note.on">>, #{ note => Note, channel => Channel, velocity => Velocity })}, State};
-handleMIDI(off, [Channel, Note, Velocity], State) ->
-	{reply, {text, formatMessage(<<"note.off">>, #{ note => Note, channel => Channel, velocity => Velocity })}, State};
-handleMIDI(program, [Channel, Program], State) ->
-	{reply, {text, formatMessage(<<"control.program">>, #{ channel => Channel, program => Program })}, State};
-handleMIDI(_, _, State) ->
-	{ok, State}.
-
-formatMessage(Type, Message) -> jsx:encode(#{ type => Type, content => Message }).
-
 %% ------------------------------------------------------------------
 %% API Function Definitions
 %% ------------------------------------------------------------------
@@ -89,14 +73,6 @@ send(Handler, Type, Message) ->
 	Handler ! {send, jsx:encode(#{ type => Type, content => Message })},
 	ok.
 
-midiEvent(#{ interval := Interval, tpqs := TPQN }, {Type, Delay, Data}) ->
-	SecondsPerQuarterNote = Interval / 1000,
-	SecondsPerTick = SecondsPerQuarterNote / TPQN,
-	EventDelay = round(Delay * SecondsPerTick),
-
-	erlang:send_after(EventDelay, self(), {midi, Type, Data}),
-	ok.
-
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
@@ -110,3 +86,27 @@ handle_client_task(<<"client.ready">>, _Content, #{ track := [ First | Rest] } =
 handle_client_task(Type, Content, State) ->
 	lager:error("Untracked Message: ~p~n", [{Type, Content}]),
 	{ok, State}.
+
+handleMIDI(time_signature, [<<Num, Denom, _, _>>], State) ->
+	{ok, State#{ ts_denom := math:pow(2, Denom), ts_num => Num }};
+handleMIDI(tempo, [TICKS], State) ->
+	{ok, State#{ interval := TICKS }};
+handleMIDI(on, [Channel, Note, Velocity], State) ->
+	{reply, {text, formatMessage(<<"note.on">>, #{ note => Note, channel => Channel, velocity => Velocity })}, State};
+handleMIDI(off, [Channel, Note, Velocity], State) ->
+	{reply, {text, formatMessage(<<"note.off">>, #{ note => Note, channel => Channel, velocity => Velocity })}, State};
+handleMIDI(program, [Channel, Program], State) ->
+	{reply, {text, formatMessage(<<"control.program">>, #{ channel => Channel, program => Program })}, State};
+handleMIDI(_, _, State) ->
+	{ok, State}.
+
+midiEvent(#{ interval := Interval, tpqs := TPQN }, {Type, Delay, Data}) ->
+	SecondsPerQuarterNote = Interval / 1000,
+	SecondsPerTick = SecondsPerQuarterNote / TPQN,
+	EventDelay = round(Delay * SecondsPerTick),
+
+	erlang:send_after(EventDelay, self(), {midi, Type, Data}),
+	ok.
+
+formatMessage(Type, Message) -> jsx:encode(#{ type => Type, content => Message }).
+
