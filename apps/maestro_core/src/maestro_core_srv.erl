@@ -34,8 +34,26 @@ init(State) ->
 		<<1:1, FPS:7, TPF:8>> ->  FPS*TPF
 	end,
 	AllTracks = lists:flatten([Tracks, [ TrackData || {track, TrackData} <- OtherTracks ]]),
-	{ok, State#{ track => AllTracks, tpqs => TicksPerQuarterNote, interval => 500000, ts_denom => 4, ts_num => 4, tpqs => 256 }}.
+	{ok, State#{
+		track    => AllTracks,
+		tpqs     => TicksPerQuarterNote,
+		interval => 500000,
+		ts_denom => 4,
+		ts_num   => 4,
+		tpqs     => 256,
+		clients  => []
+	}}.
 
+
+handle_call(register, {From, _UID}, #{ clients := Clients } = State) ->
+	erlang:monitor(process, From),
+	{ok, NewState} = case Clients of
+		[] ->
+			#{ track := [ First | Rest] } = State,
+			{midiEvent(State, First), State#{ track := Rest }};
+		_  -> {ok, State}
+	end,
+	{reply, ok, NewState#{ clients := [ From |Clients] }};
 handle_call(_Request, _From, State) ->
 	{reply, ok, State}.
 
@@ -46,7 +64,10 @@ handle_info({midi, Type, Data}, #{ track := [Next |Rest] } = State) ->
 	midiEvent(State, Next),
 	{ok, NewState} = handleMIDI(Type, Data, State#{ track := Rest }),
 	{noreply, NewState};
-handle_info(_Info, State) ->
+handle_info({'DOWN', _, _, Pid, _}, #{ clients := Clients } = State) ->
+	{noreply, State#{ clients := Clients -- [Pid]}};
+handle_info(Info, State) ->
+	io:format("UNHANDLED: ~p~n", [Info]),
 	{noreply, State}.
 
 terminate(_Reason, _State) ->
@@ -63,14 +84,16 @@ handleMIDI(time_signature, [<<Num, Denom, _, _>>], State) ->
 	{ok, State#{ ts_denom := math:pow(2, Denom), ts_num => Num }};
 handleMIDI(tempo, [TICKS], State) ->
 	{ok, State#{ interval := TICKS }};
-handleMIDI(on, [_Channel, _Note, _Velocity], State) ->
-	%{reply, {text, formatMessage(<<"note.on">>, #{ note => Note, channel => Channel, velocity => Velocity })}, State},
+handleMIDI(on, [Channel, Note, Velocity], #{ clients := Clients } = State) ->
+	Handlers = lrw:top({Channel, Note}, Clients, 1),
+	[maestro_web_msg_handler:send(Handler, <<"note.on">>, #{ note => Note, channel => Channel, velocity => Velocity }) || Handler <- Handlers],
 	{ok, State};
-handleMIDI(off, [_Channel, _Note, _Velocity], State) ->
-	%{reply, {text, formatMessage(<<"note.off">>, #{ note => Note, channel => Channel, velocity => Velocity })}, State},
+handleMIDI(off, [Channel, Note, Velocity], #{ clients := Clients } = State) ->
+	Handlers = lrw:top({Channel, Note}, Clients, 1),
+	[maestro_web_msg_handler:send(Handler, <<"note.off">>, #{ note => Note, channel => Channel, velocity => Velocity }) || Handler <- Handlers],
 	{ok, State};
-handleMIDI(program, [_Channel, _Program], State) ->
-	%{reply, {text, formatMessage(<<"control.program">>, #{ channel => Channel, program => Program })}, State},
+handleMIDI(program, [Channel, Program], #{ clients := Clients } = State) ->
+	[maestro_web_msg_handler:send(Handler, <<"control.program">>, #{ channel => Channel, program => Program }) || Handler <- Clients],
 	{ok, State};
 handleMIDI(_, _, State) ->
 	{ok, State}.
