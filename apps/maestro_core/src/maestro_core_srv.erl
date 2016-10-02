@@ -105,3 +105,6 @@ midiEvent(#{ interval := Interval, tpqs := TPQN }, {Type, Delay, Data}) ->
 
 	erlang:send_after(EventDelay, self(), {midi, Type, Data}),
 	ok.
+
+
+initMidiState(State) -> {ok, State}.
