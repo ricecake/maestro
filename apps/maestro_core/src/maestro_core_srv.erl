@@ -26,23 +26,7 @@ start_link() ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(State) ->
-	File = filename:join(code:priv_dir(maestro_web), "static/midi/bumble_bee.mid"),
-	{seq, {header, _Version, Devision}, {track, Tracks}, OtherTracks} = midifile:read(File),
-	TicksPerQuarterNote = case <<Devision:16>> of
-		<<0:1, TPQN:15>> -> TPQN;
-		<<1:1, FPS:7, TPF:8>> ->  FPS*TPF
-	end,
-	AllTracks = lists:flatten([Tracks, [ TrackData || {track, TrackData} <- OtherTracks ]]),
-	{ok, State#{
-		track    => AllTracks,
-		tpqs     => TicksPerQuarterNote,
-		interval => 500000,
-		ts_denom => 4,
-		ts_num   => 4,
-		tpqs     => 256,
-		clients  => []
-	}}.
+init(State) -> initMidiState(State).
 
 
 handle_call(register, {From, _UID}, #{ clients := Clients } = State) ->
@@ -107,4 +91,20 @@ midiEvent(#{ interval := Interval, tpqs := TPQN }, {Type, Delay, Data}) ->
 	ok.
 
 
-initMidiState(State) -> {ok, State}.
+initMidiState(State) ->
+	File = filename:join(code:priv_dir(maestro_web), "static/midi/bumble_bee.mid"),
+	{seq, {header, _Version, Devision}, {track, Tracks}, OtherTracks} = midifile:read(File),
+	TicksPerQuarterNote = case <<Devision:16>> of
+		<<0:1, TPQN:15>> -> TPQN;
+		<<1:1, FPS:7, TPF:8>> ->  FPS*TPF
+	end,
+	AllTracks = lists:flatten([Tracks, [ TrackData || {track, TrackData} <- OtherTracks ]]),
+	{ok, State#{
+		track    => AllTracks,
+		tpqs     => TicksPerQuarterNote,
+		interval => 500000,
+		ts_denom => 4,
+		ts_num   => 4,
+		tpqs     => 256,
+		clients  => []
+	}}.
