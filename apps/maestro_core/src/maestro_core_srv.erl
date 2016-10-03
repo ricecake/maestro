@@ -34,7 +34,7 @@ handle_call(register, {From, _UID}, #{ clients := Clients } = State) ->
 	{ok, NewState} = case Clients of
 		[] ->
 			#{ track := [ First | Rest] } = State,
-			{midiEvent(State, First), State#{ track := Rest }};
+			midiEvent(State#{ track := Rest }, First);
 		_  -> {ok, State}
 	end,
 	{reply, ok, NewState#{ clients := [ From |Clients] }};
@@ -45,11 +45,16 @@ handle_cast(_Msg, State) ->
 	{noreply, State}.
 
 handle_info({midi, Type, Data}, #{ track := [Next |Rest] } = State) ->
-	midiEvent(State, Next),
-	{ok, NewState} = handleMIDI(Type, Data, State#{ track := Rest }),
+	{ok, SentState} = midiEvent(State, Next),
+	{ok, NewState} = handleMIDI(Type, Data, SentState#{ track := Rest }),
 	{noreply, NewState};
-handle_info({'DOWN', _, _, Pid, _}, #{ clients := Clients } = State) ->
-	{noreply, State#{ clients := Clients -- [Pid]}};
+handle_info({'DOWN', _, _, Pid, _}, #{ clients := Clients, timer := Timer } = State) ->
+	NewClients = Clients -- [Pid],
+	case NewClients of
+		[] -> erlang:cancel_timer(Timer);
+		_  -> ok
+	end,
+	{noreply, State#{ clients := NewClients }};
 handle_info(Info, State) ->
 	io:format("UNHANDLED: ~p~n", [Info]),
 	{noreply, State}.
@@ -82,13 +87,12 @@ handleMIDI(program, [Channel, Program], #{ clients := Clients } = State) ->
 handleMIDI(_, _, State) ->
 	{ok, State}.
 
-midiEvent(#{ interval := Interval, tpqs := TPQN }, {Type, Delay, Data}) ->
+midiEvent(#{ interval := Interval, tpqs := TPQN } = State, {Type, Delay, Data}) ->
 	SecondsPerQuarterNote = Interval / 1000,
 	SecondsPerTick = SecondsPerQuarterNote / TPQN,
 	EventDelay = round(Delay * SecondsPerTick),
 
-	erlang:send_after(EventDelay, self(), {midi, Type, Data}),
-	ok.
+	{ok, State#{ timer => erlang:send_after(EventDelay, self(), {midi, Type, Data}) }}.
 
 
 initMidiState(State) ->
