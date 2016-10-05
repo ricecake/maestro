@@ -84,6 +84,8 @@ handleMIDI(off, [Channel, Note, Velocity], #{ clients := Clients } = State) ->
 handleMIDI(program, [Channel, Program], #{ clients := Clients } = State) ->
 	[maestro_web_msg_handler:send(Handler, <<"control.program">>, #{ channel => Channel, program => Program }) || Handler <- Clients],
 	{ok, State};
+handleMIDI(endtrack, [], State) ->
+        initMidi(State);
 handleMIDI(_, _, State) ->
 	{ok, State}.
 
