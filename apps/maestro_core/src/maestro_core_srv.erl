@@ -46,15 +46,26 @@ handle_cast(_Msg, State) ->
 
 handle_info({midi, Type, Data}, #{ track := [Next |Rest] } = State) ->
 	{ok, SentState} = midiEvent(State, Next),
-	{ok, NewState} = handleMIDI(Type, Data, SentState#{ track := Rest }),
+	{ok, NewState} = handleMIDI(Type, Data, SentState#{ track := Rest, last => Next }),
+	{noreply, NewState};
+handle_info({midi, _, _}, #{ track := [] } = State) ->
+        {ok, NewState} = initMidiState(State),
+	#{ track := [ First | Rest] } = NewState,
+	midiEvent(NewState#{ track := Rest }, First),
 	{noreply, NewState};
 handle_info({'DOWN', _, _, Pid, _}, #{ clients := Clients, timer := Timer } = State) ->
 	NewClients = Clients -- [Pid],
-	case NewClients of
-		[] -> erlang:cancel_timer(Timer);
-		_  -> ok
+	NewState = case NewClients of
+		[] ->
+			case erlang:cancel_timer(Timer) of
+				N when is_integer(N) andalso N > 0  ->
+					#{ track := Tracks, last := Last } = State,
+					State#{ track := [Last |Tracks]};
+				false -> State
+			end;
+		_  -> State
 	end,
-	{noreply, State#{ clients := NewClients }};
+	{noreply, NewState#{ clients := NewClients }};
 handle_info(Info, State) ->
 	io:format("UNHANDLED: ~p~n", [Info]),
 	{noreply, State}.
@@ -84,8 +95,6 @@ handleMIDI(off, [Channel, Note, Velocity], #{ clients := Clients } = State) ->
 handleMIDI(program, [Channel, Program], #{ clients := Clients } = State) ->
 	[maestro_web_msg_handler:send(Handler, <<"control.program">>, #{ channel => Channel, program => Program }) || Handler <- Clients],
 	{ok, State};
-handleMIDI(endtrack, [], State) ->
-        initMidi(State);
 handleMIDI(_, _, State) ->
 	{ok, State}.
 
