@@ -31,6 +31,7 @@ init(State) -> initMidiState(State).
 
 handle_call(register, {From, _UID}, #{ clients := Clients } = State) ->
 	erlang:monitor(process, From),
+	io:format("~p~n", [From]),
 	{ok, NewState} = case Clients of
 		[] ->
 			#{ track := [ First | Rest] } = State,
@@ -51,8 +52,8 @@ handle_info({midi, Type, Data}, #{ track := [Next |Rest] } = State) ->
 handle_info({midi, _, _}, #{ track := [] } = State) ->
         {ok, NewState} = initMidiState(State),
 	#{ track := [ First | Rest] } = NewState,
-	midiEvent(NewState#{ track := Rest }, First),
-	{noreply, NewState};
+	{ok, LastState} = midiEvent(NewState#{ track := Rest }, First),
+	{noreply, LastState};
 handle_info({'DOWN', _, _, Pid, _}, #{ clients := Clients, timer := Timer } = State) ->
 	NewClients = Clients -- [Pid],
 	NewState = case NewClients of
