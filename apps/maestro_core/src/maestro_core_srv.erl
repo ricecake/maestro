@@ -31,7 +31,6 @@ init(State) -> initMidiState(State).
 
 handle_call(register, {From, _UID}, #{ clients := Clients } = State) ->
 	erlang:monitor(process, From),
-	io:format("~p~n", [From]),
 	{ok, NewState} = case Clients of
 		[] ->
 			#{ track := [ First | Rest] } = State,
