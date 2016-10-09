@@ -145,9 +145,6 @@ $(document).ready(function(){
 	MIDI.loadPlugin({
 		soundfontUrl: "/static/soundfont/",
 		instruments: instruments,
-		onprogress: function(state, progress) {
-			console.log(state, progress);
-		},
 		onsuccess: function() {
 			var delay = 0; // play one note every quarter second
 			var note = 50; // the MIDI note
@@ -188,7 +185,6 @@ $(document).ready(function(){
 							MIDI.noteOff(content.channel, content.note, delay);
 						},
 						'control.program': function(key, content, raw){
-							console.log(raw, MIDI.GM.byId[content.program+1].instrument);
 							//MIDI.programChange(content.channel, MIDI.GM.byName['gunshot'].number);
 							MIDI.programChange(content.channel, content.program+1);
 						},
