@@ -67,7 +67,6 @@ handle_info({'DOWN', _, _, Pid, _}, #{ clients := Clients, timer := Timer } = St
 	end,
 	{noreply, NewState#{ clients := NewClients }};
 handle_info(Info, State) ->
-	io:format("UNHANDLED: ~p~n", [Info]),
 	{noreply, State}.
 
 terminate(_Reason, _State) ->
