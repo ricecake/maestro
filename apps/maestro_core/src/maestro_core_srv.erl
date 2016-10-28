@@ -66,7 +66,7 @@ handle_info({'DOWN', _, _, Pid, _}, #{ clients := Clients, timer := Timer } = St
 		_  -> State
 	end,
 	{noreply, NewState#{ clients := NewClients }};
-handle_info(Info, State) ->
+handle_info(_Info, State) ->
 	{noreply, State}.
 
 terminate(_Reason, _State) ->
