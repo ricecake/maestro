@@ -5,6 +5,9 @@ PRODRELPATH = _build/prod/rel/maestro
 APPNAME = maestro
 SHELL = /bin/bash
 
+run:
+       $(REBAR) run
+
 release:
 	$(REBAR) release
 	mkdir -p $(RELPATH)/../maestro_config
