@@ -29,8 +29,7 @@ websocket_handle({text, JSON}, State) ->
 	case jsx:decode(JSON, [return_maps]) of
 		#{ <<"type">> := Type } = Message ->
 			Content = maps:get(<<"content">>, Message, #{}),
-			{ok, NewState} = handle_client_task(Type, Content, State),
-			{ok, NewState};
+			handle_client_task(Type, Content, State);
 		_ -> {ok, State}
 	end;
 websocket_handle(_Frame, State) ->
