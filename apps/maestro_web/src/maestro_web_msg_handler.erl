@@ -72,7 +72,4 @@ initSession(Req, State) ->
 
 handle_client_task(<<"client.ready">>, _Content, State) ->
 	ok = gen_server:call(maestro_core_srv, register),
-	{ok, State};
-handle_client_task(Type, Content, State) ->
-	lager:error("Untracked Message: ~p~n", [{Type, Content}]),
 	{ok, State}.
