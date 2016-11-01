@@ -1,7 +1,7 @@
 maestro
 ===========
 
-A riak_core application
+A fun little toy to play music everywhere
 
 Build
 -----
@@ -108,14 +108,3 @@ at some point you should see something like this::
 when you are bored you can stop them::
 
     make devrel-stop
-
-
-TODO
-----
-
-* define license and create LICENSE file
-
-License
--------
-
-TODO
