@@ -37,9 +37,7 @@ handle_call(register, {From, _UID}, #{ clients := Clients } = State) ->
 			midiEvent(State#{ track := Rest }, First);
 		_  -> {ok, State}
 	end,
-	{reply, ok, NewState#{ clients := [ From |Clients] }};
-handle_call(_Request, _From, State) ->
-	{reply, ok, State}.
+	{reply, ok, NewState#{ clients := [ From |Clients] }}.
 
 handle_cast(_Msg, State) ->
 	{noreply, State}.
