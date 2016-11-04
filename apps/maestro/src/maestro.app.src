@@ -1,15 +1,17 @@
-{application, maestro,
- [{description, "An OTP library"},
-  {vsn, "0.1.0"},
-  {registered, []},
-  {applications,
-   [kernel,
-    stdlib
-   ]},
-  {env,[]},
-  {modules, []},
+{application, maestro, [
+	{description, "An OTP library"},
+	{vsn, "0.1.0"},
+	{registered, []},
+	{applications, [
+		kernel,
+		stdlib,
+		maestro_core,
+		maestro_dist
+	]},
+	{env,[]},
+	{modules, []},
 
-  {maintainers, []},
-  {licenses, []},
-  {links, []}
- ]}.
+	{maintainers, []},
+	{licenses, []},
+	{links, []}
+]}.

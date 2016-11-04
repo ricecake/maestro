@@ -1,21 +1,21 @@
-{application, maestro_web,
- [{description, "An OTP application"},
-  {vsn, "0.1.0"},
-  {registered, []},
-  {mod, { maestro_web_app, []}},
-  {applications,
-   [kernel,
-    stdlib,
-    cowboy,
-    jsx,
-    lager,
-    erlydtl,
-    uuid
-   ]},
-  {env,[]},
-  {modules, []},
+{application, maestro_web, [
+	{description, "An OTP library"},
+	{vsn, "0.1.0"},
+	{registered, []},
+	{mod, { maestro_web_app, []}},
+	{applications, [
+		kernel,
+		stdlib,
+		cowboy,
+		jsx,
+		lager,
+		erlydtl,
+		uuid
+	]},
+	{env,[]},
+	{modules, []},
 
-  {maintainers, []},
-  {licenses, []},
-  {links, []}
- ]}.
+	{maintainers, []},
+	{licenses, []},
+	{links, []}
+]}.

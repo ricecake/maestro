@@ -1,17 +1,19 @@
-%% -*- erlang -*-
-{application, maestro_dist,
- [
-  {description, "A Riak Core Application"},
-  {vsn, "1"},
-  {registered, []},
-  {applications, [
-                  kernel,
-                  stdlib,
-                  sasl,
-                  riak_core,
-                  setup,
-                  maestro_core
-                 ]},
-  {mod, { maestro_dist_app, []}},
-  {env, []}
- ]}.
+{application, maestro_dist, [
+	{description, "A Riak Core Application"},
+	{vsn, "0.1.0"},
+	{registered, []},
+	{mod, { maestro_dist_app, []}},
+	{applications, [
+		kernel,
+		stdlib,
+                riak_core,
+                setup,
+		maestro_core
+	]},
+	{env,[]},
+	{modules, []},
+
+	{maintainers, []},
+	{licenses, []},
+	{links, []}
+]}.

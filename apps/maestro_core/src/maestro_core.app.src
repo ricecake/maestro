@@ -1,17 +1,17 @@
-{application, maestro_core,
- [{description, "An OTP application"},
-  {vsn, "0.1.0"},
-  {registered, []},
-  {mod, { maestro_core_app, []}},
-  {applications,
-   [kernel,
-    stdlib,
-    lrw
-   ]},
-  {env,[]},
-  {modules, []},
+{application, maestro_core, [
+	{description, "An OTP library"},
+	{vsn, "0.1.0"},
+	{registered, []},
+	{mod, { maestro_core_app, []}},
+	{applications, [
+		kernel,
+		stdlib,
+		lrw
+	]},
+	{env,[]},
+	{modules, []},
 
-  {maintainers, []},
-  {licenses, []},
-  {links, []}
- ]}.
+	{maintainers, []},
+	{licenses, []},
+	{links, []}
+]}.

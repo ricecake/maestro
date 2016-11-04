@@ -6,7 +6,7 @@ APPNAME = maestro
 SHELL = /bin/bash
 
 run:
-       $(REBAR) run
+	$(REBAR) run
 
 release:
 	$(REBAR) release
@@ -84,4 +84,3 @@ stop:
 
 attach:
 	$(BASEDIR)/$(RELPATH)/bin/$(APPNAME) attach
-
