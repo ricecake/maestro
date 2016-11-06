@@ -5,8 +5,7 @@
 	{mod, { maestro_core_app, []}},
 	{applications, [
 		kernel,
-		stdlib,
-		lrw
+		stdlib
 	]},
 	{env,[]},
 	{modules, []},
