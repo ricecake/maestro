@@ -26,44 +26,15 @@ start_link() ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(State) -> initMidiState(State).
+init(State) -> {ok, State}.
 
 
-handle_call(register, {From, _UID}, #{ clients := Clients } = State) ->
-	erlang:monitor(process, From),
-	{ok, NewState} = case Clients of
-		[] ->
-			#{ track := [ First | Rest] } = State,
-			midiEvent(State#{ track := Rest }, First);
-		_  -> {ok, State}
-	end,
-	{reply, ok, NewState#{ clients := [ From |Clients] }}.
+handle_call(_Msg, _From, State) ->
+	{reply, ok, State}.
 
 handle_cast(_Msg, State) ->
 	{noreply, State}.
 
-handle_info({midi, Type, Data}, #{ track := [Next |Rest] } = State) ->
-	{ok, SentState} = midiEvent(State, Next),
-	{ok, NewState} = handleMIDI(Type, Data, SentState#{ track := Rest, last => Next }),
-	{noreply, NewState};
-handle_info({midi, _, _}, #{ track := [] } = State) ->
-        {ok, NewState} = initMidiState(State),
-	#{ track := [ First | Rest] } = NewState,
-	{ok, LastState} = midiEvent(NewState#{ track := Rest }, First),
-	{noreply, LastState};
-handle_info({'DOWN', _, _, Pid, _}, #{ clients := Clients, timer := Timer } = State) ->
-	NewClients = Clients -- [Pid],
-	NewState = case NewClients of
-		[] ->
-			case erlang:cancel_timer(Timer) of
-				N when is_integer(N) andalso N > 0  ->
-					#{ track := Tracks, last := Last } = State,
-					State#{ track := [Last |Tracks]};
-				false -> State
-			end;
-		_  -> State
-	end,
-	{noreply, NewState#{ clients := NewClients }};
 handle_info(_Info, State) ->
 	{noreply, State}.
 
@@ -77,46 +48,3 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
-handleMIDI(time_signature, [<<Num, Denom, _, _>>], State) ->
-	{ok, State#{ ts_denom := math:pow(2, Denom), ts_num => Num }};
-handleMIDI(tempo, [TICKS], State) ->
-	{ok, State#{ interval := TICKS }};
-handleMIDI(on, [Channel, Note, Velocity], #{ clients := Clients } = State) ->
-	Handlers = lrw:top({Channel, Note}, Clients, 1),
-	[maestro_web_msg_handler:send(Handler, <<"note.on">>, #{ note => Note, channel => Channel, velocity => Velocity }) || Handler <- Handlers],
-	{ok, State};
-handleMIDI(off, [Channel, Note, Velocity], #{ clients := Clients } = State) ->
-	Handlers = lrw:top({Channel, Note}, Clients, 1),
-	[maestro_web_msg_handler:send(Handler, <<"note.off">>, #{ note => Note, channel => Channel, velocity => Velocity }) || Handler <- Handlers],
-	{ok, State};
-handleMIDI(program, [Channel, Program], #{ clients := Clients } = State) ->
-	[maestro_web_msg_handler:send(Handler, <<"control.program">>, #{ channel => Channel, program => Program }) || Handler <- Clients],
-	{ok, State};
-handleMIDI(_, _, State) ->
-	{ok, State}.
-
-midiEvent(#{ interval := Interval, tpqs := TPQN } = State, {Type, Delay, Data}) ->
-	SecondsPerQuarterNote = Interval / 1000,
-	SecondsPerTick = SecondsPerQuarterNote / TPQN,
-	EventDelay = round(Delay * SecondsPerTick),
-
-	{ok, State#{ timer => erlang:send_after(EventDelay, self(), {midi, Type, Data}) }}.
-
-
-initMidiState(State) ->
-	File = filename:join(code:priv_dir(maestro_web), "static/midi/bumble_bee.mid"),
-	{seq, {header, _Version, Devision}, {track, Tracks}, OtherTracks} = midifile:read(File),
-	TicksPerQuarterNote = case <<Devision:16>> of
-		<<0:1, TPQN:15>> -> TPQN;
-		<<1:1, FPS:7, TPF:8>> ->  FPS*TPF
-	end,
-	AllTracks = lists:flatten([Tracks, [ TrackData || {track, TrackData} <- OtherTracks ]]),
-	{ok, State#{
-		track    => AllTracks,
-		tpqs     => TicksPerQuarterNote,
-		interval => 500000,
-		ts_denom => 4,
-		ts_num   => 4,
-		tpqs     => 256,
-		clients  => []
-	}}.
