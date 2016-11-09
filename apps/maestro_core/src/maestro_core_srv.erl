@@ -48,3 +48,7 @@ code_change(_OldVsn, State, _Extra) ->
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
 
+%Spec = cronparser:time_specs("*/15 * * * *") .
+%Now = calendar:local_time().
+%Next = cronparser:next(Now,Spec).
+%calendar:datetime_to_gregorian_seconds(Next) - calendar:datetime_to_gregorian_seconds(calendar:local_time()).
