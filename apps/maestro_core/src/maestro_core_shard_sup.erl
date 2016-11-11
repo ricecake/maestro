@@ -1,9 +1,9 @@
 %%%-------------------------------------------------------------------
-%% @doc maestro_core top level supervisor.
+%% @doc maestro_core timer group supervisor.
 %% @end
 %%%-------------------------------------------------------------------
 
--module(maestro_core_sup).
+-module(maestro_core_shard_sup).
 
 -behaviour(supervisor).
 
@@ -30,9 +30,8 @@ start_link() ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
-	{ok, { #{}, [
-		?CHILD(maestro_core_shard_sup, supervisor),
-		?CHILD(maestro_core_srv, worker)
+	{ok, { #{ strategy => simple_one_for_one }, [
+		?CHILD(maestro_core_shard, worker)
 	]}}.
 
 %%====================================================================
