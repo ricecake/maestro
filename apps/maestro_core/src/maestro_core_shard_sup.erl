@@ -10,7 +10,7 @@
 %% API
 -export([
 	start_link/0,
-	add_shard/1
+	add_shard/2
 ]).
 
 %% Supervisor callbacks
@@ -27,8 +27,8 @@
 start_link() ->
 	supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
-add_shard(Identifier) when is_list(Identifier) ->
-	supervisor:start_child(?SERVER, [Identifier]).
+add_shard(Identifier, Callback) when is_list(Identifier) ->
+	supervisor:start_child(?SERVER, [Identifier, Callback]).
 
 %%====================================================================
 %% Supervisor callbacks

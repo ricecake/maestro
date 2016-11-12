@@ -7,7 +7,7 @@
 %% ------------------------------------------------------------------
 
 -export([
-	start_link/1,
+	start_link/2,
 	add_timer/3
 ]).
 
@@ -22,8 +22,8 @@
 %% API Function Definitions
 %% ------------------------------------------------------------------
 
-start_link(ShardIdentifier) ->
-	gen_server:start_link(?MODULE, ShardIdentifier, []).
+start_link(ShardIdentifier, Callback) ->
+	gen_server:start_link(?MODULE, {ShardIdentifier, Callback}, []).
 
 add_timer(Shard, Name, Data) ->
 	gen_server:call(Shard, {add_timer, Name, Data}).
@@ -32,7 +32,7 @@ add_timer(Shard, Name, Data) ->
 %% gen_server Function Definitions
 %% ------------------------------------------------------------------
 
-init(ShardIdentifier) ->
+init({ShardIdentifier, OwnerCallback}) ->
 	FileName = filename:join(["maestro_core_shard_data", ShardIdentifier]),
 	ok = filelib:ensure_dir(FileName),
 
@@ -42,8 +42,9 @@ init(ShardIdentifier) ->
 		{use_bloomfilter, true}
 	]),
 
-	CallBack = fun(_Data) ->
-		lager:debug("Cron tick -- " ++ ShardIdentifier)
+	CallBack = fun(Data) ->
+		lager:warning("Cron tick -- " ++ ShardIdentifier),
+		OwnerCallback(ShardIdentifier, Data)
 	end,
 	{ok, Timer} = watchbin:new(1000, CallBack),
 
@@ -51,9 +52,11 @@ init(ShardIdentifier) ->
 	{ok, #{ timer => Timer, db => DBRef, filename => FileName }}.
 
 
-handle_call({add_timer, Name, Data}, _From, State) ->
+handle_call({add_timer, Name, Data}, _From, #{ timer := Timer } = State) ->
 	lager:debug("adding timer"),
 	io:format("~p~n", [{Name, Data}]),
+	Interval = 5000,
+	{ok, _} = watchbin:start_timer(Timer, Interval, #{ data => Data, name => Name }, [{name, Name}]),
 	{reply, ok, State};
 handle_call(_Msg, _From, State) ->
 	{reply, ok, State}.
@@ -73,3 +76,4 @@ code_change(_OldVsn, State, _Extra) ->
 %% ------------------------------------------------------------------
 %% Internal Function Definitions
 %% ------------------------------------------------------------------
+%maestro_dist:add_timer(<<"test">>, #{}).

@@ -3,7 +3,8 @@
 
 -export([
 	ping/0,
-	add_timer/2
+	add_timer/2,
+	find_primaries/1
 ]).
 
 -ignore_xref([
@@ -31,3 +32,9 @@ add_timer(Name, Data) when is_binary(Name), is_map(Data) ->
 
 getReplication() -> {3, 2}.
 timeout() -> 5000.
+
+find_primaries(Key) ->
+	{N, _} = getReplication(),
+	DocIdx = riak_core_util:chash_key(Key),
+	[Primary |Secondaries] = riak_core_apl:get_apl(DocIdx, N, maestro_dist),
+	{ok, Primary, Secondaries}.
