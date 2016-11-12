@@ -6,7 +6,10 @@
 %% API Function Exports
 %% ------------------------------------------------------------------
 
--export([start_link/1]).
+-export([
+	start_link/1,
+	add_timer/3
+]).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Exports
@@ -21,6 +24,9 @@
 
 start_link(ShardIdentifier) ->
 	gen_server:start_link(?MODULE, ShardIdentifier, []).
+
+add_timer(Shard, Name, Data) ->
+	gen_server:call(Shard, {add_timer, Name, Data}).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -39,12 +45,16 @@ init(ShardIdentifier) ->
 	CallBack = fun(_Data) ->
 		lager:debug("Cron tick -- " ++ ShardIdentifier)
 	end,
-	{ok, Timer} = watchbin:new(2500, CallBack),
+	{ok, Timer} = watchbin:new(1000, CallBack),
 
 
 	{ok, #{ timer => Timer, db => DBRef, filename => FileName }}.
 
 
+handle_call({add_timer, Name, Data}, _From, State) ->
+	lager:debug("adding timer"),
+	io:format("~p~n", [{Name, Data}]),
+	{reply, ok, State};
 handle_call(_Msg, _From, State) ->
 	{reply, ok, State}.
 

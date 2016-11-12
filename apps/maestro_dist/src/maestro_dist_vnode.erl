@@ -22,18 +22,20 @@
 	start_vnode/1
 ]).
 
--record(state, {partition :: any()}).
-
 %% API
 start_vnode(I) ->
 	riak_core_vnode_master:get_vnode_pid(I, ?MODULE).
 
 init([Partition]) ->
-	{ok, #state { partition=Partition }}.
+	{ok, Shard} = maestro_core:add_shard(integer_to_list(Partition)),
+	{ok, #{ partition => Partition, shard => Shard }}.
 
 %% Sample command: respond to a ping
-handle_command(ping, _Sender, State) ->
-	{reply, {pong, State#state.partition}, State};
+handle_command(ping, _Sender, #{ partition := Partition } = State) ->
+	{reply, {pong, Partition}, State};
+handle_command({RefId, {add_timer, Name, Data}}, _Sender, #{ partition := Partition, shard := Shard } = State) ->
+	ok = maestro_core:add_timer(Shard, Name, Data),
+	{reply, {RefId, {timing, Partition}}, State};
 handle_command(Message, _Sender, State) ->
 	lager:warning("unhandled_command ~p", [Message]),
 	{noreply, State}.
