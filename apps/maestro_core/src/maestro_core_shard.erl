@@ -43,7 +43,6 @@ init({ShardIdentifier, OwnerCallback}) ->
 	]),
 
 	CallBack = fun(Data) ->
-		lager:warning("Cron tick -- " ++ ShardIdentifier),
 		OwnerCallback(ShardIdentifier, Data)
 	end,
 	{ok, Timer} = watchbin:new(1000, CallBack),
@@ -53,8 +52,6 @@ init({ShardIdentifier, OwnerCallback}) ->
 
 
 handle_call({add_timer, Name, Data}, _From, #{ timer := Timer } = State) ->
-	lager:debug("adding timer"),
-	io:format("~p~n", [{Name, Data}]),
 	Interval = 5000,
 	{ok, _} = watchbin:start_timer(Timer, Interval, #{ data => Data, name => Name }, [{name, Name}]),
 	{reply, ok, State};
