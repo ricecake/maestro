@@ -28,7 +28,8 @@ start_link() ->
 	supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 add_shard(Identifier, Callback) when is_list(Identifier) ->
-	supervisor:start_child(?SERVER, [Identifier, Callback]).
+	{ok, _} = supervisor:start_child(?SERVER, [Identifier, Callback]),
+	{ok, Identifier}.
 
 %%====================================================================
 %% Supervisor callbacks
@@ -36,6 +37,13 @@ add_shard(Identifier, Callback) when is_list(Identifier) ->
 
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
+	ets:new(maestro_core_shard_registry, [
+		bag,
+		public,
+		named_table,
+		{read_concurrency, true}
+	]),
+
 	{ok, { #{ strategy => simple_one_for_one }, [
 		?CHILD(maestro_core_shard, worker)
 	]}}.

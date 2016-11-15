@@ -27,7 +27,7 @@ start_vnode(I) ->
 	riak_core_vnode_master:get_vnode_pid(I, ?MODULE).
 
 init([Partition]) ->
-	{ok, Shard} = maestro_core:add_shard(integer_to_list(Partition), fun check_owner/2),
+	{ok, Shard} = maestro_core:add_shard(integer_to_list(Partition), fun check_owner/3),
 	{ok, #{ partition => Partition, shard => Shard }}.
 
 %% Sample command: respond to a ping
@@ -73,14 +73,15 @@ handle_exit(_Pid, _Reason, State) ->
 terminate(_Reason, _State) ->
 	ok.
 
-check_owner(Partition, #{ data := Data, name := Name }) ->
-				{ok, Primary, Secondaries} = maestro_dist:find_primaries({<<"timer">>, Name}),
-				ThisVnode = {list_to_integer(Partition), node()},
-				ok = case Primary of
-					ThisVnode  ->
-						antiEntropy({Name, Data}, Secondaries);
-					_OtherVnode -> antiEntropy({Name, Data}, [Primary | [Node || Node <- Secondaries, Node /= ThisVnode]])
-				end.
+check_owner(Partition, Name, Data) ->
+	{ok, Primary, Secondaries} = maestro_dist:find_primaries({<<"timer">>, Name}),
+	ThisVnode = {list_to_integer(Partition), node()},
+	ok = case Primary of
+		ThisVnode  ->
+			lager:info("Executing Task for job [~s]", [Name]),
+			antiEntropy({Name, Data}, Secondaries);
+		_OtherVnode -> antiEntropy({Name, Data}, [Primary | [Node || Node <- Secondaries, Node /= ThisVnode]])
+	end.
 
 
 antiEntropy({Name, Data}, Vnodes) ->
