@@ -59,15 +59,15 @@ init({ShardIdentifier, OwnerCallback}) ->
 	{ok, #{ shard => ShardIdentifier, timer => Timer, db => DBRef, filename => FileName }}.
 
 
-handle_call({add_timer, Name, Data}, _From, #{ shard := Shard } = State) ->
+handle_call({add_timer, Name, Data}, _From, State) ->
 	lager:info("Adding timer [~s]", [Name]),
-	ok = schedule_job(Shard, Name, Data),
+	ok = schedule_job(Name, Data, State),
 	{reply, ok, State};
 handle_call(_Msg, _From, State) ->
 	{reply, ok, State}.
 
-handle_cast({schedule, {Name, Data}}, #{ shard := Shard } = State) ->
-	ok = schedule_job(Shard, Name, Data),
+handle_cast({schedule, {Name, Data}}, State) ->
+	ok = schedule_job(Name, Data, State),
 	{noreply, State};
 handle_cast(_Msg, State) ->
 	{noreply, State}.
@@ -90,12 +90,18 @@ code_change(_OldVsn, State, _Extra) ->
 %Next = cronparser:next(Now,Spec).
 %calendar:datetime_to_gregorian_seconds(Next) - calendar:datetime_to_gregorian_seconds(calendar:local_time()).
 
-schedule_job(Timer, Name, Data) ->
-	Interval = determine_interval(Data),
-	lager:info("Scheduling timer [~s] for ~B milliseconds", [Name, Interval]),
-	{ok, _} = watchbin:start_timer(Timer, Interval, #{ data => Data, name => Name }, [once, {name, Name}]),
+schedule_job(Name, Data, #{ shard := Timer }) ->
+	case determine_interval(Data) of
+		Interval when is_integer(Interval) andalso Interval > 0 ->
+			lager:info("Scheduling timer [~s] for ~B milliseconds", [Name, Interval]),
+			{ok, _} = watchbin:start_timer(Timer, Interval, #{ data => Data, name => Name }, [once, {name, Name}]);
+		undefined ->
+			lager:info("Timer [~s] not resecheduled: undefined next interval", [Name])
+	end,
 	ok.
 
+determine_interval(#{ interval := {Unit, Num}}) ->
+	timer:Unit(Num);
 determine_interval(#{ cron := CronSpec }) ->
 	Now = calendar:universal_time(),
 	Spec = cronparser:time_specs(CronSpec),
