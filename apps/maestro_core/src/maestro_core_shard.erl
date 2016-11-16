@@ -54,13 +54,27 @@ init({ShardIdentifier, OwnerCallback}) ->
 	end,
 	{ok, Timer} = watchbin:new(1000, CallBack, ShardIdentifier),
 
+	State = #{
+		shard    => ShardIdentifier,
+		timer    => Timer,
+		db       => DBRef,
+		filename => FileName
+	},
+
+	eleveldb:fold(DBRef, fun({Key, Value}, _) ->
+		Name = binary_to_term(Key),
+		Data = binary_to_term(Value),
+		ok = schedule_job(Name, Data, State)
+	end, ok, []),
+
 	ets:insert(maestro_core_shard_registry, {ShardIdentifier, self()}),
 
-	{ok, #{ shard => ShardIdentifier, timer => Timer, db => DBRef, filename => FileName }}.
+	{ok, State}.
 
 
-handle_call({add_timer, Name, Data}, _From, State) ->
+handle_call({add_timer, Name, Data}, _From, #{ db := Db } = State) ->
 	lager:info("Adding timer [~s]", [Name]),
+	ok = store(Db, Name, Data),
 	ok = schedule_job(Name, Data, State),
 	{reply, ok, State};
 handle_call(_Msg, _From, State) ->
@@ -90,17 +104,18 @@ code_change(_OldVsn, State, _Extra) ->
 %Next = cronparser:next(Now,Spec).
 %calendar:datetime_to_gregorian_seconds(Next) - calendar:datetime_to_gregorian_seconds(calendar:local_time()).
 
-schedule_job(Name, Data, #{ shard := Timer }) ->
+schedule_job(Name, Data, #{ shard := Timer, db := Db }) ->
 	case determine_interval(Data) of
 		Interval when is_integer(Interval) andalso Interval > 0 ->
 			lager:info("Scheduling timer [~s] for ~B milliseconds", [Name, Interval]),
 			{ok, _} = watchbin:start_timer(Timer, Interval, #{ data => Data, name => Name }, [once, {name, Name}]);
-		undefined ->
-			lager:info("Timer [~s] not resecheduled: undefined next interval", [Name])
+		_Undefined ->
+			lager:info("Timer [~s] not resecheduled: undefined next interval", [Name]),
+			delete(Db, Name)
 	end,
 	ok.
 
-determine_interval(#{ at := {date, DateTime} }) ->
+determine_interval(#{ at := DateTime }) ->
 	Now = calendar:universal_time(),
 	Interval = calendar:datetime_to_gregorian_seconds(DateTime) - calendar:datetime_to_gregorian_seconds(Now),
 	timer:seconds(Interval);
@@ -112,3 +127,21 @@ determine_interval(#{ cron := CronSpec }) ->
 	Next = cronparser:next(Now,Spec),
 	Interval = calendar:datetime_to_gregorian_seconds(Next) - calendar:datetime_to_gregorian_seconds(Now),
 	timer:seconds(Interval).
+
+store(Db, Key, Value) -> eleveldb:put(Db, term_to_binary(Key), term_to_binary(Value), []).
+
+%exists(Db, Key) ->
+%        case eleveldb:get(Db, term_to_binary(Key), []) of
+%                {ok, _BinaryTerm}  -> true;
+%                not_found         -> false
+%        end.
+%
+%getIfExists(Db, Key) ->
+%        case eleveldb:get(Db, term_to_binary(Key), []) of
+%                {ok, BinaryTerm} -> {ok, binary_to_term(BinaryTerm)};
+%                not_found         -> false
+%        end.
+
+delete(Db, Key) ->
+        eleveldb:delete(Db, term_to_binary(Key), []).
+
