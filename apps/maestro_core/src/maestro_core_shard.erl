@@ -100,6 +100,10 @@ schedule_job(Name, Data, #{ shard := Timer }) ->
 	end,
 	ok.
 
+determine_interval(#{ at := {date, DateTime} }) ->
+	Now = calendar:universal_time(),
+	Interval = calendar:datetime_to_gregorian_seconds(DateTime) - calendar:datetime_to_gregorian_seconds(Now),
+	timer:seconds(Interval);
 determine_interval(#{ interval := {Unit, Num}}) ->
 	timer:Unit(Num);
 determine_interval(#{ cron := CronSpec }) ->
