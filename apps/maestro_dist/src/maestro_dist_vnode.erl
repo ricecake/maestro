@@ -78,6 +78,9 @@ check_owner(Partition, Name, Data) ->
 	ThisVnode = {list_to_integer(Partition), node()},
 	ok = case Primary of
 		ThisVnode  ->
+			{ok, Ring} = riak_core_ring_manager:get_my_ring(),
+			_RunningNodes = riak_core_node_watcher:nodes(maestro_dist),
+			_AllNodes = riak_core_ring:all_members(Ring),
 			lager:info("Executing Task for job [~s]", [Name]),
 			antiEntropy({Name, Data}, Secondaries);
 		_OtherVnode -> antiEntropy({Name, Data}, [Primary | [Node || Node <- Secondaries, Node /= ThisVnode]])

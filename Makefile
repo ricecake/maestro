@@ -10,18 +10,12 @@ run:
 
 release:
 	$(REBAR) release
-	mkdir -p $(RELPATH)/../maestro_config
-	[ -f $(RELPATH)/../maestro_config/maestro.conf ] || cp $(RELPATH)/etc/maestro.conf  $(RELPATH)/../maestro_config/maestro.conf
-	[ -f $(RELPATH)/../maestro_config/advanced.config ] || cp $(RELPATH)/etc/advanced.config  $(RELPATH)/../maestro_config/advanced.config
 
 console:
 	cd $(RELPATH) && ./bin/maestro console
 
 prod-release:
 	$(REBAR) as prod release
-	mkdir -p $(PRODRELPATH)/../maestro_config
-	[ -f $(PRODRELPATH)/../maestro_config/maestro.conf ] || cp $(PRODRELPATH)/etc/maestro.conf  $(PRODRELPATH)/../maestro_config/maestro.conf
-	[ -f $(PRODRELPATH)/../maestro_config/advanced.config ] || cp $(PRODRELPATH)/etc/advanced.config  $(PRODRELPATH)/../maestro_config/advanced.config
 
 prod-console:
 	cd $(PRODRELPATH) && ./bin/maestro console

@@ -1,0 +1,7 @@
+%% @doc handoff.port is the TCP port that Riak uses for
+%% intra-cluster data handoff.
+{mapping, "maestro.http.port", "maestro_web.http_port", [
+  {default, {{maestro_http_port}} },
+  {datatype, integer}
+]}.
+
