@@ -58,10 +58,11 @@ handle_handoff_data(_Data, State) ->
 encode_handoff_item(_ObjectName, _ObjectValue) ->
 	<<>>.
 
-is_empty(State) ->
-	{true, State}.
+is_empty(#{ shard := Shard } = State) ->
+	{maestro_core:is_empty(Shard), State}.
 
-delete(State) ->
+delete(#{ shard := Shard } = State) ->
+	maestro_core:remove_shard(Shard),
 	{ok, State}.
 
 handle_coverage(_Req, _KeySpaces, _Sender, State) ->
@@ -70,7 +71,8 @@ handle_coverage(_Req, _KeySpaces, _Sender, State) ->
 handle_exit(_Pid, _Reason, State) ->
 	{noreply, State}.
 
-terminate(_Reason, _State) ->
+terminate(_Reason, #{ shard := Shard }) ->
+	maestro_core:remove_shard(Shard),
 	ok.
 
 check_owner(Partition, Name, Data) ->

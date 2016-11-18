@@ -1,25 +1,22 @@
 %% @doc maestro.http.port is the TCP port that Maestro uses for
 %% its web interface.
 {mapping, "maestro.http.port", "maestro_web.http_port", [
-  {default, {{maestro_http_port}} },
-  {datatype, integer}
+	{default, {{maestro_http_port}} },
+	{datatype, integer}
 ]}.
 
 %% @doc maestro.http.ip is the IP address that Maestro uses for
 %% its web interface.
 {mapping, "maestro.http.ip", "maestro_web.http_ip", [
-  {default, {{maestro_http_ip}} },
-  {datatype, string},
-  {validators, ["valid_ipaddr"]}
+	{default, {{maestro_http_ip}} },
+	{datatype, string},
+	{validators, ["valid_ipaddr"]}
 ]}.
 
-{validator,
-  "valid_ipaddr",
-  "must be a valid IP address",
-  fun(AddrString) ->
-    case inet_parse:address(AddrString) of
-      {ok, _} -> true;
-      {error, _} -> false
-    end
-  end}.
+{validator, "valid_ipaddr", "must be a valid IP address", fun(AddrString) ->
+	case inet_parse:address(AddrString) of
+		{ok, _} -> true;
+		{error, _} -> false
+	end
+end}.
 
