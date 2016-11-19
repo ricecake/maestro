@@ -8,7 +8,7 @@
 %% @doc maestro.http.ip is the IP address that Maestro uses for
 %% its web interface.
 {mapping, "maestro.http.ip", "maestro_web.http_ip", [
-	{default, {{maestro_http_ip}} },
+	{default, "{{maestro_http_ip}}" },
 	{datatype, string},
 	{validators, ["valid_ipaddr"]}
 ]}.
@@ -19,4 +19,3 @@
 		{error, _} -> false
 	end
 end}.
-
