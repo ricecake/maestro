@@ -94,7 +94,7 @@ handle_call({add_timer, Name, Data}, _From, #{ db := Db } = State) ->
 	{reply, ok, State};
 handle_call(stop, _From, State) ->
 	{stop, ok, State};
-handle_call(remove, _From, #{ db := Db, filename := File, timer := Timer } = State) ->
+handle_call(remove, _From, #{ db := Db, filename := File, shard := Timer } = State) ->
 	watchbin:destroy(Timer),
 	eleveldb:close(Db),
 	{Result, NewState} = case eleveldb:destroy(File, []) of
@@ -118,7 +118,7 @@ handle_cast(_Msg, State) ->
 handle_info(_Info, State) ->
 	{noreply, State}.
 
-terminate(_Reason, #{ timer := Timer, db := Db }) ->
+terminate(_Reason, #{ shard := Timer, db := Db }) ->
 	case Timer of
 		undefined -> ok;
 		_         ->
