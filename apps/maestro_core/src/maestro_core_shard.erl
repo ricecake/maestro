@@ -9,7 +9,10 @@
 -export([
 	start_link/2,
 	add_timer/3,
-	schedule/3
+	schedule/3,
+	stop_shard/1,
+	remove_shard/1,
+	is_empty/1
 ]).
 
 %% ------------------------------------------------------------------
@@ -33,6 +36,18 @@ add_timer(Shard, Name, Data) ->
 schedule(Shard, Name, Data) ->
 	[{Shard, Pid}] = ets:lookup(maestro_core_shard_registry, Shard),
 	gen_server:cast(Pid, {schedule, {Name, Data}}).
+
+stop_shard(Shard) ->
+	[{Shard, Pid}] = ets:lookup(maestro_core_shard_registry, Shard),
+	gen_server:call(Pid, stop).
+
+remove_shard(Shard) ->
+	[{Shard, Pid}] = ets:lookup(maestro_core_shard_registry, Shard),
+	gen_server:call(Pid, remove).
+
+is_empty(Shard) ->
+	[{Shard, Pid}] = ets:lookup(maestro_core_shard_registry, Shard),
+	gen_server:call(Pid, is_empty).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -77,6 +92,20 @@ handle_call({add_timer, Name, Data}, _From, #{ db := Db } = State) ->
 	ok = store(Db, Name, Data),
 	ok = schedule_job(Name, Data, State),
 	{reply, ok, State};
+handle_call(stop, _From, State) ->
+	{stop, ok, State};
+handle_call(remove, _From, #{ db := Db, filename := File, timer := Timer } = State) ->
+	watchbin:destroy(Timer),
+	eleveldb:close(Db),
+	{Result, NewState} = case eleveldb:destroy(File, []) of
+		ok ->
+			{ok, State#{ db := undefined, timer := undefined }};
+		{error, Reason} ->
+			{{error, Reason}, State}
+	end,
+	{reply, Result, NewState};
+handle_call(is_empty, _From, #{ db := Db } = State) ->
+	{reply, eleveldb:is_empty(Db), State};
 handle_call(_Msg, _From, State) ->
 	{reply, ok, State}.
 
@@ -89,7 +118,17 @@ handle_cast(_Msg, State) ->
 handle_info(_Info, State) ->
 	{noreply, State}.
 
-terminate(_Reason, _State) ->
+terminate(_Reason, #{ timer := Timer, db := Db }) ->
+	case Timer of
+		undefined -> ok;
+		_         ->
+			watchbin:destroy(Timer)
+	end,
+	case Db of
+		undefined -> ok;
+		_         ->
+			eleveldb:close(Db)
+	end,
 	ok.
 
 code_change(_OldVsn, State, _Extra) ->

@@ -72,7 +72,7 @@ handle_exit(_Pid, _Reason, State) ->
 	{noreply, State}.
 
 terminate(_Reason, #{ shard := Shard }) ->
-	maestro_core:remove_shard(Shard),
+	maestro_core:stop_shard(Shard),
 	ok.
 
 check_owner(Partition, Name, Data) ->
