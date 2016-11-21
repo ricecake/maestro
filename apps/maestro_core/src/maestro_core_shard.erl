@@ -67,11 +67,11 @@ init({ShardIdentifier, OwnerCallback}) ->
 		ok = maestro_core_shard:schedule(ShardIdentifier, Name, Data),
 		OwnerCallback(ShardIdentifier, Name, Data)
 	end,
-	{ok, Timer} = watchbin:new(1000, CallBack, ShardIdentifier),
+	{ok, _Timer} = watchbin:new(1000, CallBack, ShardIdentifier),
 
 	State = #{
 		shard    => ShardIdentifier,
-		timer    => Timer,
+		timer    => ShardIdentifier,
 		db       => DBRef,
 		filename => FileName
 	},
@@ -93,8 +93,8 @@ handle_call({add_timer, Name, Data}, _From, #{ db := Db } = State) ->
 	ok = schedule_job(Name, Data, State),
 	{reply, ok, State};
 handle_call(stop, _From, State) ->
-	{stop, ok, State};
-handle_call(remove, _From, #{ db := Db, filename := File, shard := Timer } = State) ->
+	{stop, normal, ok, State};
+handle_call(remove, _From, #{ db := Db, filename := File, timer := Timer } = State) ->
 	watchbin:destroy(Timer),
 	eleveldb:close(Db),
 	{Result, NewState} = case eleveldb:destroy(File, []) of
@@ -118,7 +118,7 @@ handle_cast(_Msg, State) ->
 handle_info(_Info, State) ->
 	{noreply, State}.
 
-terminate(_Reason, #{ shard := Timer, db := Db }) ->
+terminate(_Reason, #{ timer := Timer, db := Db }) ->
 	case Timer of
 		undefined -> ok;
 		_         ->

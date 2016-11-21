@@ -18,7 +18,7 @@
 
 -define(SERVER, ?MODULE).
 %% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), #{ id => I, type => Type, start => {I, start_link, []} }).
+-define(CHILD(I, Type), #{ id => I, type => Type, restart => transient, start => {I, start_link, []} }).
 
 %%====================================================================
 %% API functions
@@ -38,7 +38,7 @@ add_shard(Identifier, Callback) when is_list(Identifier) ->
 %% Child :: {Id,StartFunc,Restart,Shutdown,Type,Modules}
 init([]) ->
 	ets:new(maestro_core_shard_registry, [
-		bag,
+		set,
 		public,
 		named_table,
 		{read_concurrency, true}

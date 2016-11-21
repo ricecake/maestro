@@ -19,7 +19,7 @@ stop_shard(Shard) ->
 	maestro_core_shard:stop_shard(Shard).
 
 remove_shard(Shard) ->
-	maestro_core_shard:remove_timer(Shard).
+	maestro_core_shard:remove_shard(Shard).
 
 is_empty(Shard) ->
 	maestro_core_shard:is_empty(Shard).
