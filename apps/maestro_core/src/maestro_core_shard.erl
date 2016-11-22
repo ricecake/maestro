@@ -9,6 +9,7 @@
 -export([
 	start_link/2,
 	add_timer/3,
+	remove_timer/2,
 	schedule/3,
 	stop_shard/1,
 	remove_shard/1,
@@ -32,6 +33,10 @@ start_link(ShardIdentifier, Callback) ->
 add_timer(Shard, Name, Data) ->
 	[{Shard, Pid}] = ets:lookup(maestro_core_shard_registry, Shard),
 	gen_server:call(Pid, {add_timer, Name, Data}).
+
+remove_timer(Shard, Name) ->
+	[{Shard, Pid}] = ets:lookup(maestro_core_shard_registry, Shard),
+	gen_server:call(Pid, {remove_timer, Name}).
 
 schedule(Shard, Name, Data) ->
 	[{Shard, Pid}] = ets:lookup(maestro_core_shard_registry, Shard),
@@ -91,6 +96,11 @@ handle_call({add_timer, Name, Data}, _From, #{ db := Db } = State) ->
 	lager:info("Adding timer [~s]", [Name]),
 	ok = store(Db, Name, Data),
 	ok = schedule_job(Name, Data, State),
+	{reply, ok, State};
+handle_call({remove_timer, Name}, _From, #{ db := Db, timer := Timer } = State) ->
+	lager:info("Removing timer [~s]", [Name]),
+	ok = delete(Db, Name),
+	ok = watchbin:stop_timer(Timer, Name),
 	{reply, ok, State};
 handle_call(stop, _From, State) ->
 	{stop, normal, ok, State};
@@ -183,4 +193,3 @@ store(Db, Key, Value) -> eleveldb:put(Db, term_to_binary(Key), term_to_binary(Va
 
 delete(Db, Key) ->
         eleveldb:delete(Db, term_to_binary(Key), []).
-

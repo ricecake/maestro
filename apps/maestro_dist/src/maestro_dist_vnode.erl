@@ -36,6 +36,9 @@ handle_command(ping, _Sender, #{ partition := Partition } = State) ->
 handle_command({RefId, {add_timer, Name, Data}}, _Sender, #{ partition := Partition, shard := Shard } = State) ->
 	ok = maestro_core:add_timer(Shard, Name, Data),
 	{reply, {RefId, {timing, Partition}}, State};
+handle_command({RefId, {remove_timer, Name}}, _Sender, #{ partition := Partition, shard := Shard } = State) ->
+	ok = maestro_core:remove_timer(Shard, Name),
+	{reply, {RefId, {removed, Partition}}, State};
 handle_command(Message, _Sender, State) ->
 	lager:warning("unhandled_command ~p", [Message]),
 	{noreply, State}.

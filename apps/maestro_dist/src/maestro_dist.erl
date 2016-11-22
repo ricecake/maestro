@@ -4,6 +4,7 @@
 -export([
 	ping/0,
 	add_timer/2,
+	remove_timer/1,
 	find_primaries/1
 ]).
 
@@ -25,6 +26,16 @@ add_timer(Name, Data) when is_binary(Name), is_map(Data) ->
 	TimeOut = timeout(),
 
 	{ok, ReqId} = maestro_dist_op_fsm:op(N, W, {add_timer, Name, Data}, {<<"timer">>, Name}),
+	receive
+		{ReqId, Val} -> {ok, Val}
+	after TimeOut -> {error, timeout}
+	end.
+
+remove_timer(Name) when is_binary(Name) ->
+	{N, W} = getReplication(),
+	TimeOut = timeout(),
+
+	{ok, ReqId} = maestro_dist_op_fsm:op(N, W, {remove_timer, Name}, {<<"timer">>, Name}),
 	receive
 		{ReqId, Val} -> {ok, Val}
 	after TimeOut -> {error, timeout}
