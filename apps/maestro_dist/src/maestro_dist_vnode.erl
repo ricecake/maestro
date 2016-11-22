@@ -58,8 +58,8 @@ handoff_finished(_TargetNode, State) ->
 handle_handoff_data(_Data, State) ->
 	{reply, ok, State}.
 
-encode_handoff_item(_ObjectName, _ObjectValue) ->
-	<<>>.
+encode_handoff_item(Name, Value) ->
+	term_to_binary({Name, Value}).
 
 is_empty(#{ shard := Shard } = State) ->
 	{maestro_core:is_empty(Shard), State}.
