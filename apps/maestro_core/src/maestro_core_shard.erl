@@ -133,7 +133,7 @@ handle_call({load, Name, Value}, _From, #{ db := Db } = State) ->
 	ok = schedule_job(Name, Data, State),
 	{reply, ok, State};
 handle_call({fold, Func, Acc}, _From, #{ db := Db } = State) ->
-	{reply, {ok, eleveldb:fold(Db, fun({Key, Value}, AccIn) -> Func(Key, Value, AccIn) end, Acc, [])}, State};
+	{reply, {ok, eleveldb:fold(Db, fun({Key, Value}, AccIn) -> Func(term_to_binary(Key), Value, AccIn) end, Acc, [])}, State};
 handle_call(_Msg, _From, State) ->
 	{reply, ok, State}.
 
