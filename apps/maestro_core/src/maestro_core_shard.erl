@@ -13,7 +13,9 @@
 	schedule/3,
 	stop_shard/1,
 	remove_shard/1,
-	is_empty/1
+	is_empty/1,
+	load/3,
+	fold_shard/3
 ]).
 
 %% ------------------------------------------------------------------
@@ -53,6 +55,14 @@ remove_shard(Shard) ->
 is_empty(Shard) ->
 	[{Shard, Pid}] = ets:lookup(maestro_core_shard_registry, Shard),
 	gen_server:call(Pid, is_empty).
+
+load(Shard, Name, Value) ->
+	[{Shard, Pid}] = ets:lookup(maestro_core_shard_registry, Shard),
+	gen_server:call(Pid, {load, Name, Value}).
+
+fold_shard(Shard, Func, Acc) ->
+	[{Shard, Pid}] = ets:lookup(maestro_core_shard_registry, Shard),
+	gen_server:call(Pid, {fold, Func, Acc}).
 
 %% ------------------------------------------------------------------
 %% gen_server Function Definitions
@@ -116,6 +126,14 @@ handle_call(remove, _From, #{ db := Db, filename := File, timer := Timer } = Sta
 	{reply, Result, NewState};
 handle_call(is_empty, _From, #{ db := Db } = State) ->
 	{reply, eleveldb:is_empty(Db), State};
+handle_call({load, Name, Value}, _From, #{ db := Db } = State) ->
+	lager:info("Loading timer [~s]", [Name]),
+	Data = binary_to_term(Value),
+	ok = store(Db, Name, Data),
+	ok = schedule_job(Name, Data, State),
+	{reply, ok, State};
+handle_call({fold, Func, Acc}, _From, #{ db := Db } = State) ->
+	{reply, {ok, eleveldb:fold(Db, fun({Key, Value}, AccIn) -> Func(Key, Value, AccIn) end, Acc, [])}, State};
 handle_call(_Msg, _From, State) ->
 	{reply, ok, State}.
 

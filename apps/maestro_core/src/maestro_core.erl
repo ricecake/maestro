@@ -6,7 +6,9 @@
 	remove_timer/2,
 	stop_shard/1,
 	remove_shard/1,
-	is_empty/1
+	is_empty/1,
+	load/3,
+	fold_shard/3
 ]).
 
 
@@ -28,3 +30,8 @@ remove_shard(Shard) ->
 is_empty(Shard) ->
 	maestro_core_shard:is_empty(Shard).
 
+load(Shard, Name, Value) ->
+	maestro_core_shard:load(Shard, Name, Value).
+
+fold_shard(Shard, Func, Acc) ->
+	maestro_core_shard:fold_shard(Shard, Func, Acc).

@@ -1,6 +1,8 @@
 -module(maestro_dist_vnode).
 -behaviour(riak_core_vnode).
 
+-include_lib("riak_core/include/riak_core_vnode.hrl").
+
 -export([
 	start_vnode/1,
 	init/1,
@@ -43,8 +45,11 @@ handle_command(Message, _Sender, State) ->
 	lager:warning("unhandled_command ~p", [Message]),
 	{noreply, State}.
 
+handle_handoff_command(?FOLD_REQ{foldfun=Fun, acc0=Acc0}, _Sender, #{ shard := Shard } = State) ->
+	{ok, Result} = maestro_core:fold_shard(Shard, Fun, Acc0),
+	{reply, Result, State};
 handle_handoff_command(_Message, _Sender, State) ->
-	{noreply, State}.
+	{forward, State}.
 
 handoff_starting(_TargetNode, State) ->
 	{true, State}.
@@ -55,7 +60,9 @@ handoff_cancelled(State) ->
 handoff_finished(_TargetNode, State) ->
 	{ok, State}.
 
-handle_handoff_data(_Data, State) ->
+handle_handoff_data(BinData, #{ shard := Shard } = State) ->
+	{Name, Value} = binary_to_term(BinData),
+	ok = maestro_core:load(Shard, Name, Value),
 	{reply, ok, State}.
 
 encode_handoff_item(Name, Value) ->
