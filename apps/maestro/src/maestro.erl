@@ -4,7 +4,9 @@
 -export([
 	ping/0,
 	add_timer/2,
-	remove_timer/1
+	remove_timer/1,
+        timer_status/1,
+        list_timers/1
 ]).
 
 %%====================================================================
