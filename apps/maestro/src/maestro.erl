@@ -21,6 +21,12 @@ add_timer(Name, Data) ->
 remove_timer(Name) ->
 	maestro_dist:remove_timer(Name).
 
+list_timers(Opts) ->
+        maestro_dist:list_timers(Opts).
+
+timer_status(Name) ->
+        maestro_dist:timer_status(Name).
+
 %%====================================================================
 %% Internal functions
 %%====================================================================
