@@ -7,7 +7,7 @@
 	remove_timer/1,
 	timer_status/1,
 	find_primaries/1,
-	
+	list_timers/1	
 ]).
 
 -ignore_xref([
