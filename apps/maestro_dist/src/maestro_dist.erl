@@ -39,11 +39,7 @@ timer_status(Name) ->
 	[{IndexNode, _Type}] = PrefList,
 	riak_core_vnode_master:sync_spawn_command(IndexNode, {timer_status, Name}, maestro_dist_vnode_master).	
 
-list_timers(Args) ->
-	DocIdx = riak_core_util:chash_key({<<"timer">>, Name}),
-	PrefList = riak_core_apl:get_primary_apl(DocIdx, 1, maestro_dist),
-	[{IndexNode, _Type}] = PrefList,
-	riak_core_vnode_master:sync_spawn_command(IndexNode, {list_timers, Name}, maestro_dist_vnode_master).	
+list_timers(_Args) -> {ok, []}.
 
 remove_timer(Name) when is_binary(Name) ->
 	{N, W} = getReplication(),
