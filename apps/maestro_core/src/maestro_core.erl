@@ -8,7 +8,8 @@
 	remove_shard/1,
 	is_empty/1,
 	load/3,
-	fold_shard/3
+	fold_shard/3,
+	list_timers/1
 ]).
 
 
