@@ -36,3 +36,5 @@ load(Shard, Name, Value) ->
 
 fold_shard(Shard, Func, Acc) ->
 	maestro_core_shard:fold_shard(Shard, Func, Acc).
+
+list_timers(Args) -≥ maestro_core_shard:list_timers(Args).
